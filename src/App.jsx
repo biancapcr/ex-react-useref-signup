@@ -5,33 +5,75 @@ export default function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [specialization, setSpecialization] = useState(""); // stringa vuota = non selezionata
-  const [years, setYears] = useState(""); // viene tenuto come stringa per gestire input vuoto
+  const [specialization, setSpecialization] = useState("");
+  const [years, setYears] = useState("");
   const [bio, setBio] = useState("");
 
   // 2) stato per gli errori di validazione al submit
   const [errors, setErrors] = useState({});
 
-  function handleSubmit(e) {
-    e.preventDefault(); // evita refresh pagina
+  // 3) stato per la validazione in tempo reale
+  const [liveValidation, setLiveValidation] = useState({
+    username: null,
+    password: null,
+    bio: null,
+  });
 
-    // 3) validazione (costruzione di un oggetto errori)
+  // caratteri validi per la validazione
+  const letters = "abcdefghijklmnopqrstuvwxyz";
+  const numbers = "0123456789";
+  const symbols = "!@#$%^&*()-_=+[]{}|;:'\",.<>?/`~";
+
+  // validazione username (solo alfanumerico, min 6 caratteri)
+  function validateUsername(value) {
+    if (value.length < 6) return false;
+
+    for (let char of value.toLowerCase()) {
+      if (!letters.includes(char) && !numbers.includes(char)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // validazione password (min 8, 1 lettera, 1 numero, 1 simbolo)
+  function validatePassword(value) {
+    if (value.length < 8) return false;
+
+    let hasLetter = false;
+    let hasNumber = false;
+    let hasSymbol = false;
+
+    for (let char of value.toLowerCase()) {
+      if (letters.includes(char)) hasLetter = true;
+      else if (numbers.includes(char)) hasNumber = true;
+      else if (symbols.includes(char)) hasSymbol = true;
+    }
+
+    return hasLetter && hasNumber && hasSymbol;
+  }
+
+  // validazione bio (100–1000 caratteri, senza spazi iniziali/finali)
+  function validateBio(value) {
+    const trimmed = value.trim();
+    return trimmed.length >= 100 && trimmed.length <= 1000;
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
     const newErrors = {};
 
-    // trim = togliere gli spazi prima/dopo (evita "   " come valore valido)
     if (!fullName.trim()) newErrors.fullName = "Inserisci il nome completo.";
     if (!username.trim()) newErrors.username = "Inserisci uno username.";
     if (!password.trim()) newErrors.password = "Inserisci una password.";
     if (!bio.trim()) newErrors.bio = "Inserisci una breve descrizione.";
 
-    // specializzazione (deve essere selezionata obbligatoriamente)
     if (!specialization)
       newErrors.specialization = "Seleziona una specializzazione.";
 
-    // anni esperienza (deve essere un numero positivo)
     const yearsNumber = Number(years);
 
-    // controlli: non vuoto, deve essere un numero, deve essere > 0
     if (years === "") {
       newErrors.years = "Inserisci gli anni di esperienza.";
     } else if (Number.isNaN(yearsNumber)) {
@@ -41,35 +83,42 @@ export default function RegisterForm() {
         "Gli anni di esperienza devono essere un numero positivo.";
     }
 
-    // 4) se ci sono errori, si salvano e viene bloccato il submit
+    // blocco submit se la validazione in tempo reale fallisce
+    if (liveValidation.username === false)
+      newErrors.username = "Username non valido.";
+    if (liveValidation.password === false)
+      newErrors.password = "Password non valida.";
+    if (liveValidation.bio === false) newErrors.bio = "Descrizione non valida.";
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // 5) se è valido, eventuali vecchi errori vanno puliti
     setErrors({});
 
-    // 6) creazione di un oggetto con i dati del form
     const formData = {
       fullName: fullName.trim(),
       username: username.trim(),
-      password: password,
+      password,
       specialization,
       years: yearsNumber,
       bio: bio.trim(),
     };
 
-    // 7) milestone 1: stampa in console
     console.log("Form valido, dati inviati:", formData);
 
-    // reset form dopo submit valido
     setFullName("");
     setUsername("");
     setPassword("");
     setSpecialization("");
     setYears("");
     setBio("");
+    setLiveValidation({
+      username: null,
+      password: null,
+      bio: null,
+    });
   }
 
   return (
@@ -85,7 +134,6 @@ export default function RegisterForm() {
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Es. Bianca Rossi"
           />
           {errors.fullName && <p style={{ color: "red" }}>{errors.fullName}</p>}
         </div>
@@ -97,9 +145,23 @@ export default function RegisterForm() {
             id="username"
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Es. biancaDev"
+            onChange={(e) => {
+              const value = e.target.value;
+              setUsername(value);
+              setLiveValidation({
+                ...liveValidation,
+                username: validateUsername(value),
+              });
+            }}
           />
+          {liveValidation.username === false && (
+            <p style={{ color: "red" }}>
+              Almeno 6 caratteri, solo lettere e numeri.
+            </p>
+          )}
+          {liveValidation.username === true && (
+            <p style={{ color: "green" }}>Username valido.</p>
+          )}
           {errors.username && <p style={{ color: "red" }}>{errors.username}</p>}
         </div>
 
@@ -110,9 +172,23 @@ export default function RegisterForm() {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="********"
+            onChange={(e) => {
+              const value = e.target.value;
+              setPassword(value);
+              setLiveValidation({
+                ...liveValidation,
+                password: validatePassword(value),
+              });
+            }}
           />
+          {liveValidation.password === false && (
+            <p style={{ color: "red" }}>
+              Minimo 8 caratteri, 1 lettera, 1 numero, 1 simbolo.
+            </p>
+          )}
+          {liveValidation.password === true && (
+            <p style={{ color: "green" }}>Password valida.</p>
+          )}
           {errors.password && <p style={{ color: "red" }}>{errors.password}</p>}
         </div>
 
@@ -142,7 +218,6 @@ export default function RegisterForm() {
             type="number"
             value={years}
             onChange={(e) => setYears(e.target.value)}
-            placeholder="Es. 2"
             min="0"
           />
           {errors.years && <p style={{ color: "red" }}>{errors.years}</p>}
@@ -154,10 +229,24 @@ export default function RegisterForm() {
           <textarea
             id="bio"
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Racconta qualcosa su di te..."
+            onChange={(e) => {
+              const value = e.target.value;
+              setBio(value);
+              setLiveValidation({
+                ...liveValidation,
+                bio: validateBio(value),
+              });
+            }}
             rows={5}
           />
+          {liveValidation.bio === false && (
+            <p style={{ color: "red" }}>
+              Tra 100 e 1000 caratteri (senza spazi iniziali/finali).
+            </p>
+          )}
+          {liveValidation.bio === true && (
+            <p style={{ color: "green" }}>Descrizione valida.</p>
+          )}
           {errors.bio && <p style={{ color: "red" }}>{errors.bio}</p>}
         </div>
 
