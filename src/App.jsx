@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function RegisterForm() {
-  // 1) stato del form (campi controllati)
-  const [fullName, setFullName] = useState("");
+  // 1) campi controllati (necessari per validazione live)
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [specialization, setSpecialization] = useState("");
-  const [years, setYears] = useState("");
   const [bio, setBio] = useState("");
 
-  // 2) stato per gli errori di validazione al submit
+  // 2) campi non controllati
+  const fullNameRef = useRef(null);
+  const specializationRef = useRef(null);
+  const yearsRef = useRef(null);
+
+  // 3) stato per errori di validazione al submit
   const [errors, setErrors] = useState({});
 
-  // 3) stato per la validazione in tempo reale
+  // 4) stato per la validazione in tempo reale
   const [liveValidation, setLiveValidation] = useState({
     username: null,
     password: null,
@@ -64,17 +66,19 @@ export default function RegisterForm() {
 
     const newErrors = {};
 
+    // lettura valori dai campi non controllati
+    const fullName = fullNameRef.current.value;
+    const specialization = specializationRef.current.value;
+    const yearsValue = yearsRef.current.value;
+    const yearsNumber = Number(yearsValue);
+
+    // validazione campi non controllati
     if (!fullName.trim()) newErrors.fullName = "Inserisci il nome completo.";
-    if (!username.trim()) newErrors.username = "Inserisci uno username.";
-    if (!password.trim()) newErrors.password = "Inserisci una password.";
-    if (!bio.trim()) newErrors.bio = "Inserisci una breve descrizione.";
 
     if (!specialization)
       newErrors.specialization = "Seleziona una specializzazione.";
 
-    const yearsNumber = Number(years);
-
-    if (years === "") {
+    if (yearsValue === "") {
       newErrors.years = "Inserisci gli anni di esperienza.";
     } else if (Number.isNaN(yearsNumber)) {
       newErrors.years = "Gli anni di esperienza devono essere un numero.";
@@ -83,20 +87,32 @@ export default function RegisterForm() {
         "Gli anni di esperienza devono essere un numero positivo.";
     }
 
-    // blocco submit se la validazione in tempo reale fallisce
+    // validazione campi controllati
+    if (!username.trim()) newErrors.username = "Inserisci uno username.";
+
+    if (!password.trim()) newErrors.password = "Inserisci una password.";
+
+    if (!bio.trim()) newErrors.bio = "Inserisci una breve descrizione.";
+
+    // blocco submit se validazione in tempo reale fallisce
     if (liveValidation.username === false)
       newErrors.username = "Username non valido.";
+
     if (liveValidation.password === false)
       newErrors.password = "Password non valida.";
+
     if (liveValidation.bio === false) newErrors.bio = "Descrizione non valida.";
 
+    // se ci sono errori, viene bloccato il submit
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
+    // pulizia errori precedenti
     setErrors({});
 
+    // creazione oggetto finale dati form
     const formData = {
       fullName: fullName.trim(),
       username: username.trim(),
@@ -108,17 +124,20 @@ export default function RegisterForm() {
 
     console.log("Form valido, dati inviati:", formData);
 
-    setFullName("");
+    // reset campi controllati
     setUsername("");
     setPassword("");
-    setSpecialization("");
-    setYears("");
     setBio("");
     setLiveValidation({
       username: null,
       password: null,
       bio: null,
     });
+
+    // reset campi non controllati
+    fullNameRef.current.value = "";
+    specializationRef.current.value = "";
+    yearsRef.current.value = "";
   }
 
   return (
@@ -129,12 +148,7 @@ export default function RegisterForm() {
         {/* NOME COMPLETO */}
         <div>
           <label htmlFor="fullName">Nome completo</label>
-          <input
-            id="fullName"
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
+          <input id="fullName" type="text" ref={fullNameRef} />
           {errors.fullName && <p style={{ color: "red" }}>{errors.fullName}</p>}
         </div>
 
@@ -195,11 +209,7 @@ export default function RegisterForm() {
         {/* SPECIALIZZAZIONE */}
         <div>
           <label htmlFor="specialization">Specializzazione</label>
-          <select
-            id="specialization"
-            value={specialization}
-            onChange={(e) => setSpecialization(e.target.value)}
-          >
+          <select id="specialization" ref={specializationRef}>
             <option value="">-- Seleziona --</option>
             <option value="Full Stack">Full Stack</option>
             <option value="Frontend">Frontend</option>
@@ -213,13 +223,7 @@ export default function RegisterForm() {
         {/* ANNI DI ESPERIENZA */}
         <div>
           <label htmlFor="years">Anni di esperienza</label>
-          <input
-            id="years"
-            type="number"
-            value={years}
-            onChange={(e) => setYears(e.target.value)}
-            min="0"
-          />
+          <input id="years" type="number" ref={yearsRef} min="0" />
           {errors.years && <p style={{ color: "red" }}>{errors.years}</p>}
         </div>
 
