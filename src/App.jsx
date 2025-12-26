@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function RegisterForm() {
   // 1) campi controllati (necessari per validazione live)
@@ -11,10 +11,13 @@ export default function RegisterForm() {
   const specializationRef = useRef(null);
   const yearsRef = useRef(null);
 
-  // 3) stato per errori di validazione al submit
+  // 3) ref al contenitore del form (per scroll)
+  const formRef = useRef(null);
+
+  // 4) stato per errori di validazione al submit
   const [errors, setErrors] = useState({});
 
-  // 4) stato per la validazione in tempo reale
+  // 5) stato per la validazione in tempo reale
   const [liveValidation, setLiveValidation] = useState({
     username: null,
     password: null,
@@ -26,7 +29,12 @@ export default function RegisterForm() {
   const numbers = "0123456789";
   const symbols = "!@#$%^&*()-_=+[]{}|;:'\",.<>?/`~";
 
-  // validazione username (solo alfanumerico, min 6 caratteri)
+  // focus automatico sul primo input al mount
+  useEffect(() => {
+    fullNameRef.current.focus();
+  }, []);
+
+  // validazione username
   function validateUsername(value) {
     if (value.length < 6) return false;
 
@@ -38,7 +46,7 @@ export default function RegisterForm() {
     return true;
   }
 
-  // validazione password (min 8, 1 lettera, 1 numero, 1 simbolo)
+  // validazione password
   function validatePassword(value) {
     if (value.length < 8) return false;
 
@@ -55,7 +63,7 @@ export default function RegisterForm() {
     return hasLetter && hasNumber && hasSymbol;
   }
 
-  // validazione bio (100–1000 caratteri, senza spazi iniziali/finali)
+  // validazione bio
   function validateBio(value) {
     const trimmed = value.trim();
     return trimmed.length >= 100 && trimmed.length <= 1000;
@@ -66,7 +74,7 @@ export default function RegisterForm() {
 
     const newErrors = {};
 
-    // lettura valori dai campi non controllati
+    // lettura valori dai ref
     const fullName = fullNameRef.current.value;
     const specialization = specializationRef.current.value;
     const yearsValue = yearsRef.current.value;
@@ -89,30 +97,23 @@ export default function RegisterForm() {
 
     // validazione campi controllati
     if (!username.trim()) newErrors.username = "Inserisci uno username.";
-
     if (!password.trim()) newErrors.password = "Inserisci una password.";
-
     if (!bio.trim()) newErrors.bio = "Inserisci una breve descrizione.";
 
-    // blocco submit se validazione in tempo reale fallisce
+    // blocco submit se validazione live fallisce
     if (liveValidation.username === false)
       newErrors.username = "Username non valido.";
-
     if (liveValidation.password === false)
       newErrors.password = "Password non valida.";
-
     if (liveValidation.bio === false) newErrors.bio = "Descrizione non valida.";
 
-    // se ci sono errori, viene bloccato il submit
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // pulizia errori precedenti
     setErrors({});
 
-    // creazione oggetto finale dati form
     const formData = {
       fullName: fullName.trim(),
       username: username.trim(),
@@ -123,7 +124,10 @@ export default function RegisterForm() {
     };
 
     console.log("Form valido, dati inviati:", formData);
+  }
 
+  // reset completo del form
+  function handleReset() {
     // reset campi controllati
     setUsername("");
     setPassword("");
@@ -138,10 +142,21 @@ export default function RegisterForm() {
     fullNameRef.current.value = "";
     specializationRef.current.value = "";
     yearsRef.current.value = "";
+
+    // reset errori
+    setErrors({});
+
+    // focus di nuovo sul primo input
+    fullNameRef.current.focus();
+  }
+
+  // scroll all'inizio del form
+  function scrollToTop() {
+    formRef.current.scrollIntoView({ behavior: "smooth" });
   }
 
   return (
-    <section>
+    <section ref={formRef}>
       <h2>Registrazione Developer</h2>
 
       <form onSubmit={handleSubmit}>
@@ -227,7 +242,7 @@ export default function RegisterForm() {
           {errors.years && <p style={{ color: "red" }}>{errors.years}</p>}
         </div>
 
-        {/* BIO / DESCRIZIONE */}
+        {/* BIO */}
         <div>
           <label htmlFor="bio">Breve descrizione</label>
           <textarea
@@ -255,7 +270,24 @@ export default function RegisterForm() {
         </div>
 
         <button type="submit">Registrati</button>
+        <button type="button" onClick={handleReset}>
+          Reset
+        </button>
       </form>
+
+      {/* freccia per tornare all'inizio */}
+      <button
+        onClick={scrollToTop}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          padding: "10px 14px",
+          borderRadius: "50%",
+        }}
+      >
+        ↑
+      </button>
     </section>
   );
 }
